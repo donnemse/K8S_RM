@@ -32,16 +32,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
 
     let table_widths = app_state.get_widths();
     if !app_state.rows.is_empty() {
-        // Header 스타일 설정과 Row 생성
         let header_style = Style::default().fg(Color::White).add_modifier(Modifier::BOLD);
-        // let header_cells: Vec<Cell> = app_state.rows[0].iter()
-        //     .map(|s| {
-        //         Cell::from(s.as_str())
-        //     })
-        //     .collect();
-        // let header_row = Row::new(header_cells).style(header_style);
-
-        // let sort_config = app_state.sort_config.cl;
         let header = Row::new(
             app_state.rows[0]
                 .iter()
@@ -133,15 +124,16 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
         Spans::from("↑/↓: Scroll | ←/→: Sort | Tab: Move | Space Bar : refresh | q: Quit"),
     ];
 
+    let version = env!("CARGO_PKG_VERSION");
     let team_text = vec![
         Spans::from(""),
         Spans::from(""),
         Spans::from(""),
         Spans::from(""),
         Spans::from(""),
-        Spans::from(""),
         Spans::from("Develop by Data Platform team  "),
-        Spans::from("           dev.dp@igloo.co.kr  "),
+        Spans::from("         (dev.dp@igloo.co.kr)  "),
+        Spans::from(format!("v{}  ", version)),
     ];
     
     f.render_widget(
