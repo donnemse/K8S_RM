@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug kube-rm",
+            "program": "${workspaceFolder}/target/debug/kube-rm",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "K8S_OPENAPI_ENABLED_VERSION": "1.24"
+            },
+            "preLaunchTask": "build-with-env"
+        },
+        {
+            "type": "lldb",
+            "request": "launch",
+            "name": "Debug unit tests",
+            "cargo": {
+                "args": [
+                    "test",
+                    "--no-run"
+                ]
+            },
+            "env": {
+                "RUST_BACKTRACE": "1",
+                "K8S_OPENAPI_ENABLED_VERSION": "1.24"
+            },
+            "args": [],
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

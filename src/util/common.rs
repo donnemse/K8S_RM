@@ -49,7 +49,12 @@ pub fn format_cpu(cpu: ResourceValue) -> String {
     if value == 0 {
         String::new()
     } else if value >= 1000 {
-        format!("{}", value / 1000)
+        let float_value = value as f64 / 1000.0;
+        if float_value.fract() == 0.0 {
+            format!("{}", float_value as i64) // 소수점이 필요 없으면 정수로
+        } else {
+            format!("{:.1}", float_value) // 소수점이 필요하면 표현
+        }
     } else {
         format!("{}m", value)
     }
@@ -58,15 +63,23 @@ pub fn format_cpu(cpu: ResourceValue) -> String {
 pub fn format_memory(memory: ResourceValue) -> String {
     let bytes = memory.as_bytes();
     if bytes == 0 {
-        String::new()
-    } else if bytes >= 1024 * 1024 * 1024 {
-        format!("{}Gi", bytes / (1024 * 1024 * 1024))
+        return String::new();
+    }
+
+    let (value, unit) = if bytes >= 1024 * 1024 * 1024 {
+        (bytes as f64 / (1024.0 * 1024.0 * 1024.0), "Gi")
     } else if bytes >= 1024 * 1024 {
-        format!("{}Mi", bytes / (1024 * 1024))
+        (bytes as f64 / (1024.0 * 1024.0), "Mi")
     } else if bytes >= 1024 {
-        format!("{}Ki", bytes / 1024)
+        (bytes as f64 / 1024.0, "Ki")
     } else {
-        format!("{}B", bytes)
+        (bytes as f64, "B")
+    };
+
+    if value.fract() == 0.0 {
+        format!("{}{}", value as u64, unit) // 정수로 출력
+    } else {
+        format!("{:.1}{}", value, unit) // 소수점 둘째 자리까지 출력
     }
 }
 

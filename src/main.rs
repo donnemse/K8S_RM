@@ -12,7 +12,7 @@ use crossterm::{
 };
 use tokio::sync::mpsc;
 use tui::{
-    backend::CrosstermBackend, widgets::Row, Terminal
+    backend::CrosstermBackend, Terminal
 };
 
 use models::app::{AppState, ViewMode};
@@ -43,15 +43,20 @@ impl Drop for TerminalSetup {
     }
 }
 
+
+
 async fn fetch_data_with_sort(
     view_mode: ViewMode,
+    search_config: models::search::SearchConfig,
     sort_config: models::sort::SortConfig,
-) -> Result<Vec<Row<'static>>, AppError> {
+) -> Result<Vec<Vec<String>>, AppError> {
     match view_mode {
         ViewMode::Node => api::node::handle_node_command(Some(sort_config))
             .await
             .map_err(|e| AppError::KubeError(e.to_string())),
-        ViewMode::Pod => api::pod::handle_pod_command(Some(sort_config)).await.map_err(|e| AppError::KubeError(e.to_string())), // 추후 Pod도 정렬 추가 가능
+        ViewMode::Pod => api::pod::handle_pod_command(Some(search_config), Some(sort_config))
+            .await
+            .map_err(|e| AppError::KubeError(e.to_string())), // 추후 Pod도 정렬 추가 가능
         ViewMode::Namespace => api::namespace::handle_namespace_command(Some(sort_config))
             .await
             .map_err(|e| AppError::KubeError(e.to_string())),
@@ -78,9 +83,10 @@ async fn main() -> Result<(), AppError> {
     app_state.is_loading = true;
     let tx_clone = tx.clone();
     let initial_mode = app_state.view_mode;
-    let current_sort_config = app_state.sort_config; // 정렬 상태 포함
+    let current_sort_config = app_state.sort_config;
+    let current_search_config = app_state.search_config.clone();
     tokio::spawn(async move {
-        if let Ok(data) = fetch_data_with_sort(initial_mode, current_sort_config).await {
+        if let Ok(data) = fetch_data_with_sort(initial_mode, current_search_config, current_sort_config).await {
             let _ = tx_clone.send(data).await;
         }
     });
@@ -91,9 +97,9 @@ async fn main() -> Result<(), AppError> {
             let tx_clone = tx.clone();
             let current_mode = app_state.view_mode;
             let current_sort_config = app_state.sort_config; // 정렬 상태 전달
-    
+            let current_search_config = app_state.search_config.clone();
             tokio::spawn(async move {
-                if let Ok(data) = fetch_data_with_sort(current_mode, current_sort_config).await {
+                if let Ok(data) = fetch_data_with_sort(current_mode, current_search_config, current_sort_config).await {
                     let _ = tx_clone.send(data).await;
                 }
             });

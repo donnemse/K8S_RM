@@ -10,9 +10,9 @@ use tui::{
 use crate::util::common::{format_cpu, format_memory};
 use crate::models::error::AppError;
 use crate::models::sort::SortConfig;
-use crate::resources::node_resource::NodeResources;
+use crate::resources::resource::NodeResources;
 
-pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<Row<'static>>, AppError> {
+pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<Vec<String>>, AppError> {
     let client = Client::try_default().await.map_err(|e| AppError::KubeError(e.to_string()))?;
     let nodes: Api<Node> = Api::all(client.clone());
     let pods: Api<Pod> = Api::all(client);
@@ -21,8 +21,7 @@ pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<
     let pod_list = pods.list(&ListParams::default()).await.map_err(|e| AppError::KubeError(e.to_string()))?;
 
     let mut node_data = Vec::new();
-
-    let mut total_resources = NodeResources::new(); // Total 계산을 위한 변수
+    let mut total_resources = NodeResources::new();
 
     // Pod 데이터를 노드별로 그룹화
     let pod_by_node: HashMap<String, Vec<Pod>> = pod_list.items.into_iter()
@@ -62,20 +61,19 @@ pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<
         // Total 업데이트
         total_resources.allocatable_cpu.0 += node_resources.allocatable_cpu.0;
         total_resources.allocatable_memory.0 += node_resources.allocatable_memory.0;
-        total_resources.cpu_request.0 += node_resources.cpu_request.0;
-        total_resources.cpu_limit.0 += node_resources.cpu_limit.0;
-        total_resources.memory_request.0 += node_resources.memory_request.0;
-        total_resources.memory_limit.0 += node_resources.memory_limit.0;
+        total_resources.base.cpu_request.0 += node_resources.base.cpu_request.0;
+        total_resources.base.cpu_limit.0 += node_resources.base.cpu_limit.0;
+        total_resources.base.memory_request.0 += node_resources.base.memory_request.0;
+        total_resources.base.memory_limit.0 += node_resources.base.memory_limit.0;
 
-        // 데이터 저장
         node_data.push((
             name.clone(),
             node_resources.allocatable_cpu,
             node_resources.allocatable_memory,
-            node_resources.cpu_request,
-            node_resources.cpu_limit,
-            node_resources.memory_request,
-            node_resources.memory_limit,
+            node_resources.base.cpu_request,
+            node_resources.base.cpu_limit,
+            node_resources.base.memory_request,
+            node_resources.base.memory_limit,
         ));
     }
 
@@ -84,21 +82,19 @@ pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<
         node_data.sort_by(|a, b| {
             let column_index = sort_config.column;
             let compare = match column_index {
-                0 => a.0.cmp(&b.0), // Node Name
-                1 => a.1.0.cmp(&b.1.0), // CPU Alloc
-                2 => a.2.0.cmp(&b.2.0), // Memory Alloc
-                3 => a.3.0.cmp(&b.3.0), // CPU Request
-                4 => a.4.0.cmp(&b.4.0), // CPU Limit
-                5 => a.5.0.cmp(&b.5.0), // Memory Request
-                6 => a.6.0.cmp(&b.6.0), // Memory Limit
+                0 => a.0.cmp(&b.0),
+                1 => a.1.0.cmp(&b.1.0),
+                2 => a.2.0.cmp(&b.2.0),
+                3 => a.3.0.cmp(&b.3.0),
+                4 => a.4.0.cmp(&b.4.0),
+                5 => a.5.0.cmp(&b.5.0),
+                6 => a.6.0.cmp(&b.6.0),
                 _ => std::cmp::Ordering::Equal,
             };
 
             match column_index {
                 0 => compare,
-                _ => {
-                    compare.reverse()
-                }
+                _ => compare.reverse()
             }
         });
     }
@@ -108,55 +104,38 @@ pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<
         "TOTAL".to_string(),
         total_resources.allocatable_cpu,
         total_resources.allocatable_memory,
-        total_resources.cpu_request,
-        total_resources.cpu_limit,
-        total_resources.memory_request,
-        total_resources.memory_limit,
+        total_resources.base.cpu_request,
+        total_resources.base.cpu_limit,
+        total_resources.base.memory_request,
+        total_resources.base.memory_limit,
     ));
 
-    // 테이블 데이터 생성
-    let header_style = Style::default().fg(Color::White).add_modifier(Modifier::BOLD);
-    let row_style = Style::default().fg(Color::Gray);
-    let total_style = Style::default().fg(Color::Green).add_modifier(Modifier::BOLD); // Total 행 스타일 수정
+    // 결과 데이터 생성
+    let mut result = Vec::new();
+    
+    // 헤더 추가
+    result.push(vec![
+        "Node Name".to_string(),
+        "CPU Alloc.".to_string(),
+        "Memory Alloc.".to_string(),
+        "CPU Req.".to_string(),
+        "CPU Lim.".to_string(),
+        "Mem Req.".to_string(),
+        "Mem Lim.".to_string(),
+    ]);
 
-    let header_contents = vec![
-        "Node Name", "CPU Alloc.", "Memory Alloc.", "CPU Req.", "CPU Lim.", "Mem Req.", "Mem Lim.",
-    ];
+    // 데이터 행 추가
+    for (name, cpu_alloc, mem_alloc, cpu_req, cpu_lim, mem_req, mem_lim) in node_data {
+        result.push(vec![
+            name,
+            format_cpu(cpu_alloc),
+            format_memory(mem_alloc),
+            format_cpu(cpu_req),
+            format_cpu(cpu_lim),
+            format_memory(mem_req),
+            format_memory(mem_lim),
+        ]);
+    }
 
-    let header = Row::new(
-        header_contents
-            .iter()
-            .enumerate()
-            .map(|(i, h)| {
-                let mut cell = Cell::from(*h).style(header_style);
-                if let Some(sort_config) = sort_config {
-                    if sort_config.column == i {
-                        cell = cell.style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
-                    }
-                }
-                cell
-            })
-            .collect::<Vec<Cell>>(),
-    )
-    .style(header_style);
-
-    let rows = node_data.into_iter().map(|(name, cpu_alloc, mem_alloc, cpu_req, cpu_lim, mem_req, mem_lim)| {
-        let style = if name == "TOTAL" { // Total 행인지 확인
-            total_style
-        } else {
-            row_style
-        };
-        Row::new(vec![
-            Cell::from(name),
-            Cell::from(format_cpu(cpu_alloc)),
-            Cell::from(format_memory(mem_alloc)),
-            Cell::from(format_cpu(cpu_req)),
-            Cell::from(format_cpu(cpu_lim)),
-            Cell::from(format_memory(mem_req)),
-            Cell::from(format_memory(mem_lim)),
-        ])
-        .style(style)
-    });
-
-    Ok(std::iter::once(header).chain(rows).collect())
+    Ok(result)
 }

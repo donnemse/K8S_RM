@@ -2,6 +2,8 @@ use tui::{layout::Constraint, widgets::Row};
 
 use crate::models::sort::SortConfig;
 
+use super::search::SearchConfig;
+
 #[derive(Debug, Clone, Copy)]
 pub enum ViewMode {
     Node,
@@ -10,10 +12,11 @@ pub enum ViewMode {
 }
 
 pub struct AppState {
-    pub rows: Vec<Row<'static>>,
+    pub rows: Vec<Vec<String>>,
     pub is_loading: bool,
     pub view_mode: ViewMode,
     pub sort_config: SortConfig,
+    pub search_config: SearchConfig,
     pub scroll_offset: usize,
     pub visible_height: usize,
     pub selected_row: usize,
@@ -26,6 +29,7 @@ impl AppState {
             is_loading: false,
             view_mode: ViewMode::Node,
             sort_config: SortConfig::new(0),
+            search_config: SearchConfig::new(999, ""),
             scroll_offset: 0,
             visible_height: 0,
             selected_row: 0,
@@ -45,8 +49,9 @@ impl AppState {
             ],
             ViewMode::Pod => vec![
                 Constraint::Length(20), // Namespace
-                Constraint::Length(30), // Pod Name
+                Constraint::Length(35), // Pod Name
                 Constraint::Length(15), // Status
+                Constraint::Length(25), // Node
                 Constraint::Length(15), // CPU Request
                 Constraint::Length(15), // CPU Limit
                 Constraint::Length(15), // Memory Request

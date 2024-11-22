@@ -1,15 +1,15 @@
+use crate::models::search::SearchConfig;
 use crate::ViewMode;
 use crate::AppState;
 use crate::fetch_data_with_sort;
 
 use crossterm::event::{KeyCode, Event};
 use tokio::sync::mpsc;
-use tui::widgets::Row;
 
 pub fn handle_event(
     event: Event,
     app_state: &mut AppState,
-    tx: mpsc::Sender<Vec<Row<'static>>>,
+    tx: mpsc::Sender<Vec<Vec<String>>>,
 ) -> bool {
     if let Event::Key(key) = event {
         match key.code {
@@ -18,28 +18,34 @@ pub fn handle_event(
             }
             KeyCode::Char(' ') => {
                 app_state.is_loading = true;
-                let tx_clone = tx.clone();
-                let current_mode = app_state.view_mode;
-                let current_sort_config = app_state.sort_config; // 정렬 상태 포함
-                tokio::spawn(async move {
-                    if let Ok(data) = fetch_data_with_sort(current_mode, current_sort_config).await {
-                        let _ = tx_clone.send(data).await;
-                    }
-                });
+            }
+            KeyCode::Esc => {
+                app_state.is_loading = true;
+                app_state.search_config = SearchConfig::new(999, "");
             }
             KeyCode::Tab => {
                 app_state.toggle_view_mode();
                 app_state.is_loading = true;
                 app_state.selected_row = 0;
                 app_state.scroll_offset = 0;
-                let tx_clone = tx.clone();
-                let current_mode = app_state.view_mode;
-                let current_sort_config = app_state.sort_config; // 정렬 상태 포함
-                tokio::spawn(async move {
-                    if let Ok(data) = fetch_data_with_sort(current_mode, current_sort_config).await {
-                        let _ = tx_clone.send(data).await;
-                    }
-                });
+                app_state.sort_config.column = 0;
+                app_state.search_config = SearchConfig::new(999, "");
+
+            }
+            KeyCode::Enter => {
+                if let Some(row) = app_state.rows.get(app_state.selected_row + 1) {
+                    let column_index = match app_state.view_mode {
+                        ViewMode::Node => 3,
+                        ViewMode::Namespace => 0,
+                        _ => return true
+                    };
+                    app_state.is_loading = true;
+                    app_state.selected_row = 0;
+                    app_state.scroll_offset = 0;
+                    app_state.view_mode = ViewMode::Pod;
+                    app_state.search_config.set_word(row[0].as_str());
+                    app_state.search_config.column = column_index;
+                }
             }
             KeyCode::Left => {
                 if app_state.sort_config.column > 0 {
@@ -50,7 +56,7 @@ pub fn handle_event(
             KeyCode::Right => {
                 let max_columns = match app_state.view_mode {
                     ViewMode::Node => 6,       // Node는 7개 컬럼
-                    ViewMode::Pod => 6,        // Pod는 6개 컬럼
+                    ViewMode::Pod => 7,        // Pod는 6개 컬럼
                     ViewMode::Namespace => 4,  // Namespace는 5개 컬럼
                 };
                 if app_state.sort_config.column < max_columns {
