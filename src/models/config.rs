@@ -35,3 +35,16 @@ impl SearchConfig {
         self.word[..len].copy_from_slice(&bytes[..len]);
     }
 }
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+pub struct SortConfig {
+    pub column: usize,
+}
+
+impl SortConfig {
+    pub fn new(column: usize) -> Self {
+        Self {
+            column,
+        }
+    }
+}

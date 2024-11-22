@@ -1,9 +1,25 @@
 use std::collections::BTreeMap;
 
-use crate::resources::resource_value::ResourceValue;
 use crate::util::common::{extract_quantity, parse_cpu, parse_memory};
 use k8s_openapi::api::core::v1::ResourceRequirements;
 use k8s_openapi::apimachinery::pkg::api::resource::Quantity;
+
+#[derive(Debug, Clone, Copy, Default)]  // Default trait 추가
+pub struct ResourceValue(pub i64);      // field를 pub으로 변경
+
+impl ResourceValue {
+    pub fn new(value: i64) -> Self {
+        Self(value)
+    }
+
+    pub fn as_millicores(&self) -> i64 {
+        self.0
+    }
+
+    pub fn as_bytes(&self) -> i64 {
+        self.0
+    }
+}
 
 #[derive(Default, Clone)]
 pub struct Resources {
@@ -59,22 +75,13 @@ impl NodeResources {
         }
     }
 
-    /// 컨테이너 리소스를 추가 (기존 Resources 메서드 호출)
     pub fn add_container_resources(&mut self, resources: &ResourceRequirements) {
         self.base.add_container_resources(resources);
     }
 
-    /// 노드에 할당 가능한 리소스 설정
     pub fn add_allocatable(&mut self, allocatable: &BTreeMap<String, Quantity>) {
         let allocatable_ref = Some(allocatable.clone());
         self.allocatable_cpu = extract_quantity(&allocatable_ref, "cpu", parse_cpu);
         self.allocatable_memory = extract_quantity(&allocatable_ref, "memory", parse_memory);
-    }
-
-    /// 노드 리소스에 다른 노드 리소스를 추가
-    pub fn add(&mut self, other: &NodeResources) {
-        self.base.add(&other.base);
-        self.allocatable_cpu = ResourceValue::new(self.allocatable_cpu.as_millicores() + other.allocatable_cpu.as_millicores());
-        self.allocatable_memory = ResourceValue::new(self.allocatable_memory.as_bytes() + other.allocatable_memory.as_bytes());
     }
 }

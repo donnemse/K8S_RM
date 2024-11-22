@@ -1,15 +1,12 @@
-use crate::models::search::SearchConfig;
+use crate::models::config::SearchConfig;
 use crate::ViewMode;
 use crate::AppState;
-use crate::fetch_data_with_sort;
 
 use crossterm::event::{KeyCode, Event};
-use tokio::sync::mpsc;
 
 pub fn handle_event(
     event: Event,
-    app_state: &mut AppState,
-    tx: mpsc::Sender<Vec<Vec<String>>>,
+    app_state: &mut AppState
 ) -> bool {
     if let Event::Key(key) = event {
         match key.code {

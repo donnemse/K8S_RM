@@ -2,10 +2,10 @@ use kube::{Api, Client};
 use k8s_openapi::api::core::v1::{Namespace, Pod};
 use kube::api::ListParams;
 use std::collections::HashMap;
-use crate::resources::resource::Resources;
+use crate::models::resource::Resources;
 use crate::util::common::{format_cpu, format_memory};
 use crate::AppError;
-use crate::models::sort::SortConfig;
+use crate::models::config::SortConfig;
 
 async fn collect_namespace_resources(
     pod_list: Vec<Pod>

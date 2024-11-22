@@ -2,7 +2,6 @@ mod util;
 mod api;
 mod ui;
 mod models;
-mod resources;
 
 use std::{io, path::Path};
 use std::time::Duration;
@@ -10,6 +9,7 @@ use crossterm::{
     execute,
     terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
 };
+use models::config::{SearchConfig, SortConfig};
 use tokio::sync::mpsc;
 use tui::{
     backend::CrosstermBackend, Terminal
@@ -47,8 +47,8 @@ impl Drop for TerminalSetup {
 
 async fn fetch_data_with_sort(
     view_mode: ViewMode,
-    search_config: models::search::SearchConfig,
-    sort_config: models::sort::SortConfig,
+    search_config: SearchConfig,
+    sort_config: SortConfig,
 ) -> Result<Vec<Vec<String>>, AppError> {
     match view_mode {
         ViewMode::Node => api::node::handle_node_command(Some(sort_config))
@@ -120,7 +120,7 @@ async fn main() -> Result<(), AppError> {
                 app_state.is_loading = false;
             }
             let event = crossterm::event::read()?;
-            if !handle_event(event, &mut app_state, tx.clone()) {
+            if !handle_event(event, &mut app_state) {
                 break;
             }
         }

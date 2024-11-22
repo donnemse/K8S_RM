@@ -3,14 +3,11 @@ use kube::{Api, Client};
 use k8s_openapi::api::core::v1::{Node, Pod};
 use kube::api::ListParams;
 use std::collections::HashMap;
-use tui::{
-    style::{Color, Modifier, Style}, widgets::{Cell, Row}
-};
 
 use crate::util::common::{format_cpu, format_memory};
 use crate::models::error::AppError;
-use crate::models::sort::SortConfig;
-use crate::resources::resource::NodeResources;
+use crate::models::config::SortConfig;
+use crate::models::resource::NodeResources;
 
 pub async fn handle_node_command(sort_config: Option<SortConfig>) -> Result<Vec<Vec<String>>, AppError> {
     let client = Client::try_default().await.map_err(|e| AppError::KubeError(e.to_string()))?;

@@ -1,8 +1,5 @@
-use tui::{layout::Constraint, widgets::Row};
-
-use crate::models::sort::SortConfig;
-
-use super::search::SearchConfig;
+use tui::layout::Constraint;
+use crate::models::config::{SortConfig, SearchConfig};
 
 #[derive(Debug, Clone, Copy)]
 pub enum ViewMode {

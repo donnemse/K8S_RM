@@ -1,6 +1,6 @@
 use std::collections::BTreeMap;
 use k8s_openapi::apimachinery::pkg::api::resource::Quantity;
-use crate::{resources::resource_value::ResourceValue, AppError};
+use crate::{models::resource::ResourceValue, AppError};
 
 pub fn parse_cpu(quantity: &str) -> Result<ResourceValue, AppError> {
     if quantity.is_empty() {
@@ -82,15 +82,6 @@ pub fn format_memory(memory: ResourceValue) -> String {
         format!("{:.1}{}", value, unit) // 소수점 둘째 자리까지 출력
     }
 }
-
-const BYTE_UNITS: &[(&str, i64)] = &[
-    ("Ei", 1024i64.pow(6)),
-    ("Pi", 1024i64.pow(5)),
-    ("Ti", 1024i64.pow(4)),
-    ("Gi", 1024i64.pow(3)),
-    ("Mi", 1024i64.pow(2)),
-    ("Ki", 1024)
-];
 
 pub fn extract_quantity<F>(
     resources: &Option<BTreeMap<String, Quantity>>,

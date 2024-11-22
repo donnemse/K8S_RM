@@ -1,11 +1,13 @@
+use std::cmp::Ordering;
+
 use kube::{Api, Client};
 use k8s_openapi::api::core::v1::Pod;
 use kube::api::ListParams;
-use crate::resources::resource::Resources;
+use crate::models::resource::Resources;
 use crate::util::common::{format_cpu, format_memory};
 use crate::AppError;
-use crate::models::sort::SortConfig;
-use crate::models::search::SearchConfig;
+use crate::models::config::SortConfig;
+use crate::models::config::SearchConfig;
 
 pub async fn handle_pod_command(search_config: Option<SearchConfig>, sort_config: Option<SortConfig>) -> Result<Vec<Vec<String>>, AppError> {
     let client = Client::try_default().await.map_err(|e| AppError::KubeError(e.to_string()))?;
@@ -85,7 +87,7 @@ pub async fn handle_pod_command(search_config: Option<SearchConfig>, sort_config
                 5 => a.5.0.cmp(&b.5.0),
                 6 => a.6.0.cmp(&b.6.0),
                 7 => a.7.0.cmp(&b.7.0),
-                _ => std::cmp::Ordering::Equal,
+                _ => Ordering::Equal,
             };
 
             match column_index {
