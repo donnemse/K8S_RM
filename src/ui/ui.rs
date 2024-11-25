@@ -17,7 +17,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
         .constraints([
             Constraint::Percentage(50),
             Constraint::Percentage(50),
-        ].as_ref())
+        ])
         .split(chunks[0]);
 
     let table_chunks = Layout::default()
@@ -31,25 +31,25 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
     app_state.visible_height = (table_chunks[0].height as usize).saturating_sub(2);
 
     let table_widths = app_state.get_widths();
+
     if !app_state.rows.is_empty() {
         let header_style = Style::default().fg(Color::White).add_modifier(Modifier::BOLD);
         let header = Row::new(
             app_state.rows[0]
                 .iter()
+                .skip(app_state.scroll_offset_horizontal) // 가로 스크롤 적용
                 .enumerate()
                 .map(|(i, h)| {
                     let mut cell = Cell::from(h.as_str()).style(header_style);
-                    if app_state.sort_config.column == i {
+                    if app_state.sort_config.column == i + app_state.scroll_offset_horizontal {
                         cell = cell.style(Style::default().fg(Color::Yellow).add_modifier(Modifier::BOLD));
                     }
-                    
                     cell
                 })
                 .collect::<Vec<Cell>>(),
         )
         .style(header_style);
 
-        // 본문 행 생성
         let mut visible_rows = vec![header];
         visible_rows.extend(
             app_state.rows
@@ -64,7 +64,9 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
                     } else {
                         Style::default().fg(Color::Gray)
                     };
-                    let cells: Vec<tui::widgets::Cell> = row.iter()
+                    let cells: Vec<tui::widgets::Cell> = row
+                        .iter()
+                        .skip(app_state.scroll_offset_horizontal) // 가로 스크롤 적용
                         .map(|s| tui::widgets::Cell::from(s.as_str()))
                         .collect();
                     Row::new(cells).style(style)
@@ -94,11 +96,11 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
         f.render_widget(table, table_chunks[0]);
     }
 
-    // Total 행 렌더링
     if app_state.rows.len() > 1 {
         let total_style = Style::default().fg(Color::Green).add_modifier(Modifier::BOLD);
         let total_cells: Vec<tui::widgets::Cell> = app_state.rows.last().unwrap()
             .iter()
+            .skip(app_state.scroll_offset_horizontal) // 가로 스크롤 적용
             .map(|s| tui::widgets::Cell::from(s.as_str()))
             .collect();
         let total_row = Row::new(total_cells).style(total_style);
@@ -135,7 +137,7 @@ pub fn draw_ui<B: Backend>(f: &mut Frame<B>, app_state: &mut AppState) {
         Spans::from("         (dev.dp@igloo.co.kr)  "),
         Spans::from(format!("v{}  ", version)),
     ];
-    
+
     f.render_widget(
         Paragraph::new(banner_text).block(Block::default().borders(Borders::TOP | Borders::BOTTOM | Borders::LEFT)),
         banner_chunks[0],
