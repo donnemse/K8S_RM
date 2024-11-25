@@ -2,6 +2,7 @@ use crate::models::config::SearchConfig;
 use crate::ViewMode;
 use crate::AppState;
 
+use crossterm::event::KeyModifiers;
 use crossterm::event::{KeyCode, Event};
 
 pub fn handle_event(
@@ -10,8 +11,8 @@ pub fn handle_event(
 ) -> bool {
     if let Event::Key(key) = event {
         match key.code {
-            KeyCode::Char('q') => {
-                return false;
+            KeyCode::Char('q') | KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                return false; // 프로그램 종료
             }
             KeyCode::Char(' ') => {
                 app_state.is_loading = true;
